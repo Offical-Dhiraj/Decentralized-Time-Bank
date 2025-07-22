@@ -34,6 +34,7 @@ contract DecentralizedTimeBank {
     event ServiceRequestCreated(uint256 indexed requestId, address indexed requester, uint256 timeRequired);
     event ServiceCompleted(uint256 indexed requestId, address indexed provider, uint256 timeExchanged);
     event TimeTransferred(address indexed from, address indexed to, uint256 amount);
+    event ServiceRequestCancelled(uint256 indexed requestId, address indexed requester);
     
     modifier onlyActiveUser() {
         require(users[msg.sender].isActive, "User not registered or inactive");
@@ -115,6 +116,17 @@ contract DecentralizedTimeBank {
         
         emit ServiceCompleted(_requestId, request.provider, request.timeOffered);
         emit TimeTransferred(request.requester, request.provider, request.timeOffered);
+    }
+
+    function cancelServiceRequest(uint256 _requestId) external onlyActiveUser onlyValidRequest(_requestId) {
+        ServiceRequest storage request = serviceRequests[_requestId];
+        require(request.requester == msg.sender, "Only requester can cancel");
+        require(request.provider == address(0), "Cannot cancel after request is accepted");
+        require(!request.isCompleted, "Cannot cancel completed request");
+
+        request.isActive = false;
+
+        emit ServiceRequestCancelled(_requestId, msg.sender);
     }
     
     function getUserProfile(address _user) external view returns (
